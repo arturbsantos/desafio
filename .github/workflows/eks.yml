@@ -1,0 +1,37 @@
+name: Create EKS Cluster
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create-eks-cluster:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up AWS CLI
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Install eksctl
+      run: |
+        curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/0.115.0/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+        sudo mv /tmp/eksctl /usr/local/bin
+
+    - name: Create EKS Cluster
+      run: |
+        eksctl create cluster --name my-cluster --region us-west-2 --nodegroup-name my-node-group --node-type t2.medium --nodes 3 --nodes-min 1 --nodes-max 4 --managed
+
+    - name: Update kubeconfig
+      run: |
+        aws eks --region us-east-1 update-kubeconfig --name my-cluster
+
+    - name: Verify kubectl version
+      run: kubectl version --short
